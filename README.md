@@ -51,6 +51,21 @@ Git is the source of truth. A change pushed here reaches the cluster without any
 
 ---
 
+## Screenshots
+
+ArgoCD reconciling the full stack from Git:
+
+![ArgoCD](docs/argocd-sync.png)
+
+GPU utilisation under load — 100 sequential requests:
+
+![Grafana](docs/grafana-gpu.png)
+
+Prometheus scraping DCGM and vLLM:
+
+![Prometheus](docs/prometheus-targets.png)
+
+
 ## Components
 
 | Layer | What runs there |
