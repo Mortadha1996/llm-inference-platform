@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  slo-rules.yml: |
+    groups:
+      - name: sli-recording
+        interval: 30s
+        rules:
+          # SLI 1 — Availability: fraction of successful health scrapes
+          - record: sli:vllm_availability:ratio_5m
+            expr: avg_over_time(up{job="vllm"}[5m])
+
+          # SLI 2 — Latency: fraction of requests under 2s TTFT
+          - record: sli:vllm_ttft_under_2s:ratio_5m
+            expr: |
+              sum(rate(vllm:time_to_first_token_seconds_bucket{le="2.0"}[5m]))
+              /
+              sum(rate(vllm:time_to_first_token_seconds_count[5m]))
+
+          # SLI 3 — GPU saturation: memory headroom remaining
+          - record: sli:gpu_memory_headroom:ratio
+            expr: 1 - (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE))
+
+      - name: slo-alerts
+        rules:
+          # Availability SLO: 99% over 30 days
+          # Error budget: 1% = ~7h13m per month
+          - alert: SLOAvailabilityBurnRateFast
+            expr: (1 - avg_over_time(up{job="vllm"}[1h])) > 0.14
+            for: 5m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "Availability error budget burning fast"
+              description: "At this rate the 30-day budget is exhausted in under 2 days."
+
+          - alert: SLOAvailabilityBurnRateSlow
+            expr: (1 - avg_over_time(up{job="vllm"}[6h])) > 0.05
+            for: 30m
+            labels:
+              severity: warning
+              slo: availability
+            annotations:
+              summary: "Availability error budget burning slowly"
+
+          # Latency SLO: 95% of requests under 2s TTFT
+          - alert: SLOLatencyBudgetBurn
+            expr: sli:vllm_ttft_under_2s:ratio_5m < 0.95
+            for: 15m
+            labels:
+              severity: warning
+              slo: latency
+            annotations:
+              summary: "Time to first token exceeding 2s for more than 5% of requests"
+
+          # GPU memory: alert before OOM
+          - alert: GPUMemoryPressure
+            expr: sli:gpu_memory_headroom:ratio < 0.10
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Less than 10% GPU memory headroom remaining"
