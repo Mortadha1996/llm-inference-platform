@@ -1,0 +1,23 @@
+name: Security scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  checkov:
+    name: Checkov policy scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov against Kubernetes manifests
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: k8s/
+          framework: kubernetes
+          soft_fail: true
+          output_format: cli
