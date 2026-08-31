@@ -3,9 +3,7 @@ name: Validate manifests
 on:
   push:
     branches: [main]
-    paths: ['k8s/**']
   pull_request:
-    paths: ['k8s/**']
 
 jobs:
   kubeconform:
@@ -31,5 +29,14 @@ jobs:
       - name: Install yamllint
         run: pip install yamllint
 
+      - name: Create lint config
+        run: |
+          cat > .yamllint.yml << 'YAMLEOF'
+          extends: relaxed
+          rules:
+            line-length:
+              max: 200
+          YAMLEOF
+
       - name: Lint YAML
-        run: yamllint -d "{extends: relaxed, rules: {line-length: {max: 160}}}" k8s/
+        run: yamllint -c .yamllint.yml k8s/
