@@ -288,6 +288,12 @@ git push
 
 **Port-forwards die quietly.** After a pod restart the tunnel keeps the local port bound but stops relaying. Requests hang with no error. Kill the process and restart it.
 
+**Resource limits need real numbers, not guesses.** vLLM was first given a 6Gi memory limit, which looked reasonable — and produced a crash loop of OOMKilled containers. The model loads into system RAM before moving to the GPU, and the PyTorch CUDA image is heavy at startup. 12Gi works on this node.
+
+**A single GPU cannot be shared during a rolling update.** Kubernetes tried to start the new pod before terminating the old one, and it sat Pending because the GPU was still held. Fixed with `strategy: type: Recreate` — honest about the constraint rather than fighting it.
+
+
+**Not every Checkov finding should be fixed.** The dcgm-exporter DaemonSet runs with `privileged: true` because DCGM needs direct access to NVIDIA hardware counters through the device files. That's a documented requirement of the exporter, not an oversight. The finding is accepted and explained rather than suppressed — a scan that reports nothing proves nothing.
 ---
 
 ## Stack
