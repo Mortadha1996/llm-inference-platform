@@ -260,6 +260,30 @@ Under load — 100 sequential requests at 200 max tokens — GPU utilisation pea
 
 ---
 
+## Service Level Objectives
+
+Monitoring tells you what happened. SLOs tell you whether it mattered.
+
+| SLI | What it measures | SLO | Error budget (30d) |
+|---|---|---|---|
+| Availability | Fraction of successful health scrapes | 99% | 1% — roughly 7h13m |
+| Latency | Requests with time-to-first-token under 2s | 95% | 5% of requests |
+| GPU headroom | Free VRAM as a fraction of total | Above 10% | Alerts before OOM |
+
+Recording rules compute the SLIs every 30 seconds; alerting rules watch the burn rate.
+
+**Multi-window burn rate alerting.** A single threshold either pages too early or too 
+late. Two windows solve it:
+
+- **Fast burn** — 14% error rate over 1 hour fires critical. At that rate the monthly 
+  budget is gone in under two days.
+- **Slow burn** — 5% over 6 hours fires a warning. Not urgent, but the trend is wrong.
+
+**Why this matters operationally.** While error budget remains, the team can ship. When 
+it's exhausted, changes freeze until reliability recovers. The budget turns an argument 
+about "are we moving too fast" into a number.
+
+
 ## GitOps in practice
 
 `selfHeal: true` means the cluster corrects drift on its own:
