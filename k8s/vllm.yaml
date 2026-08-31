@@ -22,6 +22,7 @@ spec:
     spec:
       runtimeClassName: nvidia
       enableServiceLinks: false
+      automountServiceAccountToken: false
       containers:
         - name: vllm
           image: vllm/vllm-openai:v0.6.3
@@ -44,8 +45,18 @@ spec:
             - containerPort: 8000
               name: http
           resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
             limits:
+              memory: "6Gi"
+              cpu: "4"
               nvidia.com/gpu: 1
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: cache
               mountPath: /cache
@@ -56,6 +67,12 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
